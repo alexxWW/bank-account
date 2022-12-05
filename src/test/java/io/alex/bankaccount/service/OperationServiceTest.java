@@ -4,6 +4,7 @@ import io.alex.exception.AmountNegativeValueException;
 import io.alex.exception.InsufficientAmountException;
 import io.alex.model.Operation;
 import io.alex.operationEnum.OperationType;
+import io.alex.printer.ConsoleFormattedOperationsPrinter;
 import io.alex.repository.OperationsRepository;
 import io.alex.service.OperationsServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +20,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 
 import static io.alex.bankaccount.resources.FakeOperations.*;
@@ -32,36 +34,15 @@ public class OperationServiceTest {
     @Mock
     private OperationsRepository operationsRepository;
 
+    @Mock
+    private ConsoleFormattedOperationsPrinter operationsPrinter;
+
     private OperationsServiceImpl operationsServiceImpl;
 
     @BeforeEach
     void initMock() {
-        operationsServiceImpl = new OperationsServiceImpl(operationsRepository, Clock.fixed(Instant.parse("2022-11-23T18:16:30.00Z"), ZoneId.of("UTC"))
-        );
+        operationsServiceImpl = new OperationsServiceImpl(operationsRepository, Clock.fixed(Instant.parse("2022-11-23T18:16:30.00Z"), ZoneId.of("UTC")), operationsPrinter);
     }
-
-    @Test
-    @DisplayName("Should deposit the amount and update the balance")
-    void depositTest() throws AmountNegativeValueException {
-
-        when(operationsRepository.findOperationByOrderByDate()).thenReturn(Optional.of(fakeOperation2));
-        when(operationsRepository.register(any())).thenReturn(fakeOperation2Expected);
-
-        Operation actual = operationsServiceImpl.deposit(BigDecimal.valueOf(200));
-
-        assertThat(actual).usingRecursiveComparison().isEqualTo(fakeOperation2Expected);
-
-        verify(operationsRepository).findOperationByOrderByDate();
-        verify(operationsRepository).register(Operation
-                .builder()
-                .date(LocalDateTime.now(fixedClock))
-                .operationType(OperationType.DEPOSIT)
-                .amount(BigDecimal.valueOf(200).setScale(2, RoundingMode.HALF_EVEN))
-                .balance(BigDecimal.valueOf(800).setScale(2, RoundingMode.HALF_EVEN))
-                .build());
-        verifyNoMoreInteractions(operationsRepository);
-    }
-
 
     @Test
     @DisplayName("Should allow the withdrawal with rounded amount and update the balance")
@@ -104,4 +85,38 @@ public class OperationServiceTest {
         verifyNoMoreInteractions(operationsRepository);
     }
 
+    @Test
+    @DisplayName("Should deposit the amount and update the balance")
+    void depositTest() throws AmountNegativeValueException {
+
+        when(operationsRepository.findOperationByOrderByDate()).thenReturn(Optional.of(fakeOperation2));
+        when(operationsRepository.register(any())).thenReturn(fakeOperation2Expected);
+
+        Operation actual = operationsServiceImpl.deposit(BigDecimal.valueOf(200));
+
+        assertThat(actual).usingRecursiveComparison().isEqualTo(fakeOperation2Expected);
+
+        verify(operationsRepository).findOperationByOrderByDate();
+        verify(operationsRepository).register(Operation
+                .builder()
+                .date(LocalDateTime.now(fixedClock))
+                .operationType(OperationType.DEPOSIT)
+                .amount(BigDecimal.valueOf(200).setScale(2, RoundingMode.HALF_EVEN))
+                .balance(BigDecimal.valueOf(800).setScale(2, RoundingMode.HALF_EVEN))
+                .build());
+        verifyNoMoreInteractions(operationsRepository);
+    }
+
+    @Test
+    @DisplayName("Should call display account statement method")
+    void displayAccountBalanceTest() {
+
+        when(operationsRepository.getAll()).thenReturn(List.of(fakeOperation));
+        operationsServiceImpl.displayAccountStatement();
+
+        verify(operationsPrinter).print(List.of(fakeOperation));
+        verify(operationsRepository).getAll();
+        verifyNoMoreInteractions(operationsRepository);
+        verifyNoMoreInteractions(operationsPrinter);
+    }
 }

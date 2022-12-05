@@ -9,7 +9,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.List;
 
 public class FakeOperations {
 
@@ -37,8 +36,6 @@ public class FakeOperations {
             .operationType(OperationType.DEPOSIT)
             .build();
 
-
-
     public static Operation fakeWithdrawOperationToSave = Operation.builder()
                     .date(LocalDateTime.now(fixedClock))
                     .amount(BigDecimal.valueOf(200.23))
@@ -53,30 +50,4 @@ public class FakeOperations {
                     .operationType(OperationType.WITHDRAW)
                     .build();
 
-    public static Operation fakeDepositOperationToSave = Operation.builder()
-            .date(LocalDateTime.now(fixedClock))
-            .amount(BigDecimal.valueOf(200.23))
-            .balance(BigDecimal.valueOf(199.77))
-            .operationType(OperationType.DEPOSIT)
-            .build();
-
-    public static Operation fakeDepositRegisterOperation =  Operation.builder()
-            .date(LocalDateTime.now(fixedClock))
-            .amount(BigDecimal.valueOf(200.23))
-            .balance(BigDecimal.valueOf(199.77))
-            .operationType(OperationType.DEPOSIT)
-            .build();
-    public static List<Operation> fakeOperationListExpected = List.of(Operation.builder()
-                    .date(LocalDateTime.now(fixedClock))
-                    .amount(BigDecimal.valueOf(200))
-                    .balance(BigDecimal.valueOf(400))
-                    .operationType(OperationType.WITHDRAW)
-                    .build(),
-            Operation.builder()
-                    .date(LocalDateTime.now(fixedClockToCompare))
-                    .amount(BigDecimal.valueOf(200))
-                    .balance(BigDecimal.valueOf(600))
-                    .operationType(OperationType.DEPOSIT)
-                    .build()
-    );
 }
