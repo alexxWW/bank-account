@@ -1,6 +1,7 @@
 package io.alex.bankaccount.service;
 
 import io.alex.exception.AmountNegativeValueException;
+import io.alex.exception.InsufficientAmountException;
 import io.alex.model.Operation;
 import io.alex.operationEnum.OperationType;
 import io.alex.repository.OperationsRepository;
@@ -22,6 +23,7 @@ import java.util.Optional;
 
 import static io.alex.bankaccount.resources.FakeOperations.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,4 +61,47 @@ public class OperationServiceTest {
                 .build());
         verifyNoMoreInteractions(operationsRepository);
     }
+
+
+    @Test
+    @DisplayName("Should allow the withdrawal with rounded amount and update the balance")
+    void withdrawWithRoundedAmountTest() throws InsufficientAmountException, AmountNegativeValueException {
+
+        when(operationsRepository.findOperationByOrderByDate()).thenReturn(Optional.of(fakeOperation));
+        when(operationsRepository.register(any())).thenReturn(fakeWithdrawOperationToSave);
+
+        Operation actual = operationsServiceImpl.withdraw(BigDecimal.valueOf(200.2345));
+
+        assertThat(actual).usingRecursiveComparison().isEqualTo(fakeWithdrawRegisterOperation);
+
+        verify(operationsRepository).findOperationByOrderByDate();
+        verify(operationsRepository).register(Operation
+                .builder()
+                .date(LocalDateTime.now(fixedClock))
+                .operationType(OperationType.WITHDRAW)
+                .amount(BigDecimal.valueOf(200.2345).setScale(2, RoundingMode.HALF_EVEN))
+                .balance(BigDecimal.valueOf(199.77).setScale(2, RoundingMode.HALF_EVEN))
+                .build());
+        verifyNoMoreInteractions(operationsRepository);
+    }
+
+    @Test
+    @DisplayName("Shouldn't allow withdrawal and raise an Insufficient amount Exception ")
+    void cantWithdrawBecauseOfInsufficientMoneyTest() {
+
+        when(operationsRepository.findOperationByOrderByDate()).thenReturn(Optional.ofNullable(fakeOperation));
+        assertThrows(InsufficientAmountException.class, () -> operationsServiceImpl.withdraw(BigDecimal.valueOf(1000.00)));
+
+        verifyNoMoreInteractions(operationsRepository);
+    }
+
+    @Test
+    @DisplayName("Shouldn't allow withdrawal and raise an Amount negative value exception")
+    void cantWithdrawBecauseOfNegativeValueRequestedTest() {
+
+        assertThrows(AmountNegativeValueException.class, () -> operationsServiceImpl.withdraw(BigDecimal.valueOf(-400.00)));
+
+        verifyNoMoreInteractions(operationsRepository);
+    }
+
 }

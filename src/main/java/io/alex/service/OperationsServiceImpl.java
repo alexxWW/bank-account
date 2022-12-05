@@ -39,9 +39,21 @@ public class OperationsServiceImpl implements OperationService {
         return createOperation(OperationType.DEPOSIT, amountRounded, balance.add(amountRounded));
     }
 
+
+
     @Override
-    public Operation withdraw(BigDecimal amountRequested) {
-        return null;
+    public Operation withdraw(BigDecimal amountRequested) throws AmountNegativeValueException, InsufficientAmountException {
+        if (amountRequested.compareTo(BigDecimal.ZERO) < 0) {
+            throw new AmountNegativeValueException("Amount requested can't be negative");
+        }
+        BigDecimal accountBalance = getAccountBalance();
+        BigDecimal amountRounded = amountRequested.setScale(2, RoundingMode.HALF_EVEN);
+
+        if (amountRequested.compareTo(accountBalance) > 0) {
+            throw new InsufficientAmountException("Your account balance does not allow the withdrawal operation");
+        }
+
+        return createOperation(OperationType.WITHDRAW, amountRounded, accountBalance.subtract(amountRounded));
     }
 
     @Override
